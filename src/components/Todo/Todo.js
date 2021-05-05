@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import style from './Todo.module.scss'
 import uuid from 'react-uuid'
+import usePersistedState from '../../hooks/usePersistedState'
 import { Card, Input, Divider, List, Checkbox, Button } from 'antd'
-import { DeleteOutlined, EditOutlined, CloseOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, CloseOutlined } from '@ant-design/icons'
 
 export default function Todo() {
-  const [todoList, setTodoList] = useState([])
+  const [todoList, setTodoList] = usePersistedState('todoList', [])
   const [todoFieldValue, setTodoFieldValue] = useState('')
 
   function addTodo(e) {
@@ -15,17 +16,10 @@ export default function Todo() {
     }
   }
 
-  function changeTodoField(e) {
-    setTodoFieldValue(e.target.value)
-  }
-
   function changeTodoState(e, idx) {
-    const newTodoList = todoList.map(todo => {
-      if(todo.id === idx) {
-        todo.activated = e.target.checked
-      }
-      return todo
-    })
+    const newTodoList = [...todoList]
+    const currentTodoIdx = newTodoList.findIndex(todo => todo.id === idx)
+    newTodoList[currentTodoIdx].activated = e.target.checked
     setTodoList(newTodoList)
   }
 
@@ -35,35 +29,26 @@ export default function Todo() {
   }
 
   function editTodo(idx) {
-    const newTodoList = todoList.map(todo => {
-      if(todo.id === idx) {
-        todo.edited = true
-      }
-      return todo
-    })
+    const newTodoList = [...todoList]
+    const currentTodoIdx = newTodoList.findIndex(todo => todo.id === idx)
+    newTodoList[currentTodoIdx].edited = true
     setTodoList(newTodoList)
   }
 
   function changeItemField(e, idx) {
-    if (e.key === 'Enter') {
-      const newTodoList = todoList.map(todo => {
-        if(todo.id === idx) {
-          todo.text = e.target.value
-          todo.edited = false
-        }
-        return todo
-      })
+    if (e.key === 'Enter' && e.target.value) {
+      const newTodoList = [...todoList]
+      const currentTodoIdx = newTodoList.findIndex(todo => todo.id === idx)
+      newTodoList[currentTodoIdx].text = e.target.value
+      newTodoList[currentTodoIdx].edited = false
       setTodoList(newTodoList)
     }
   }
 
   function cancelEditTodo(idx) {
-    const newTodoList = todoList.map(todo => {
-      if(todo.id === idx) {
-        todo.edited = false
-      }
-      return todo
-    })
+    const newTodoList = [...todoList]
+    const currentTodoIdx = newTodoList.findIndex(todo => todo.id === idx)
+    newTodoList[currentTodoIdx].edited = false
     setTodoList(newTodoList)
   }
 
@@ -72,12 +57,14 @@ export default function Todo() {
       <Card style={{ width: '100%' }}>
         <Input 
           value={todoFieldValue}
-          onChange={changeTodoField}  
+          onChange={e => setTodoFieldValue(e.target.value)}  
+          data-testid="inputAddTodo"
           placeholder="Add a todo..."
           onKeyPress={addTodo} 
         />
         <Divider />
         <List
+          data-testid="todos"
           dataSource={todoList}
           renderItem={item => (
             <List.Item className={style.ListItem}>
@@ -88,8 +75,7 @@ export default function Todo() {
                 {item.edited ?
                   <Input 
                     defaultValue={item.text}
-                    onChange={changeItemField}  
-                    placeholder="Add a todo..."
+                    onChange={changeItemField} 
                     onKeyPress={(event) => changeItemField(event, item.id)} 
                   />
                  :
@@ -117,6 +103,7 @@ export default function Todo() {
               }
               <Button 
                 onClick={() => removeTodo(item.id)} 
+                data-testid="delete-button"
                 style={{marginTop: "4px", marginLeft: "5px"}} 
                 type="danger" 
                 size="small" 
